@@ -1,3 +1,5 @@
+# This is obselete code I'm keeping in case it comes in handy
+
 =begin
 def mod_flig_download(links, link_numbers)
   browser = open_browser("google.com")
