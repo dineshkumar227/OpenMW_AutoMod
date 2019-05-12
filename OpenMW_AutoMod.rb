@@ -4,46 +4,33 @@ require 'pry'
 require 'yaml'
 require 'open-uri.rb'
 require 'mechanize'
-require 'ModFlig'
-require 'NexusMods'
+require 'tmpdir'
+require 'fileutils'
+require_relative 'ModFlig'
+require_relative 'NexusMods'
 
-@run = false
-@download_directory = ""
+@download_directory 
 #Watir.default_timeout = 60000
 
-def open_browser(link)
-  unless @run
-    @download_directory = get_download_directory
-    @run = true
+def make_temp
+  if Dir.exist?(File.join(Dir.tmpdir, "OpenMW_AutoMod"))
+    FileUtils.remove_dir(File.join(Dir.tmpdir, "OpenMW_AutoMod"))
+    Dir.mkdir(File.join(Dir.tmpdir, "OpenMW_AutoMod"))
+  else
+    Dir.mkdir(File.join(Dir.tmpdir, "OpenMW_AutoMod"))
   end
-  prefs = {
-      download: {
-          prompt_for_download: false,
-          default_directory: @download_directory
-      }
-  }
-  browser = Watir::Browser.new :chrome, options: {prefs: prefs}
-  browser.goto(link)
-  return browser
-end
-
-def get_latest_file
-  Dir.chdir(@download_directory)
-  file_directory = Dir.glob(@download_directory + "/*.*").max_by {|f| File.mtime(f)}
-end
-
-def append_file(number)
-  file_directory = get_latest_file 
-  directory_parts = file_directory.split('/')
-  filename = number.to_s + directory_parts.last
-  binding.pry
-  File.rename(file_name, file_directory - directory_parts + filename)
+  @download_directory = File.join(Dir.tmpdir, "OpenMW_AutoMod")
 end
 
 def get_download_directory
-  puts "Enter path to download files to"
-  @download_directory = gets
-  @download_directory = @download_directory.chomp
+  make_temp
+  puts "Enter path to download files to (default: " + @download_directory.to_s + ")"
+  temp = gets
+  temp = temp.chomp
+  if Dir.exists?(temp)
+    @download_directory = temp
+    @download_directory = @download_directory.chomp
+  end
   return @download_directory
 end
 
@@ -59,26 +46,24 @@ end
 
 def read_yaml(file_name)
   parsed = begin
-   data = YAML.load(File.open(file_name))
-  rescue ArgumentError => e
-    puts "Could not parse YAML: #{e.message}"
-  end
+             data = YAML.load(File.open(file_name))
+           rescue ArgumentError => e
+             puts "Could not parse YAML: #{e.message}"
+           end
   return data
 end
 
 
 
 def user_download(manual_links, link_numbers)
-puts  "The following links have to be manually downloaded and renamed, please append the number shown in front of
-the link to the downloaded file (Note: this only applies to mods that involve extraction of data files for mods like
-soundtracks or tools to fix leveled lists please refer to the instructions posted at modding-openmw.com): "
+  puts  "The following links have to be manually downloaded and renamed, please append the number shown in front of the link to the downloaded file like <number>_file.name (Note: this only applies to mods that involve extraction of data files for mods like soundtracks or tools to fix leveled lists please refer to the instructions posted at modding-openmw.com): "
   i = 0
   while i < manual_links.length
     puts "#{link_numbers[i]}: #{manual_links[i]}"
     i += 1
   end
-puts "\nPress enter to continue once finished"
-gets
+  puts "\nPress enter to continue once finished"
+  gets
 end
 
 def link_gateway(links)
@@ -108,14 +93,13 @@ def link_gateway(links)
   user_download(manual_links, manual_link_numbers)
   puts "All manual links have been taken care of, you may now leave and grab a cup of coffee\n"
 
-  NexusMods.download(nexus_links, nexus_link_numbers)
-  ModFlig.download(mod_flig_links, mod_flig_link_numbers)
+  NexusMods.download(nexus_links, nexus_link_numbers, @download_directory)
+  ModFlig.download(mod_flig_links, mod_flig_link_numbers, @download_directory)
 end
 
 ############# END OF FUNCTION DEFINITIONS #############
 
+@download_directory = get_download_directory
 #down_links = ModdingOpenMW.scrape("https://modding-openmw.com/mods/")
 #write_yaml("download_links.yml", down_links)
-
 link_gateway(read_yaml("download_links.yml"))
-
