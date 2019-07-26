@@ -100,6 +100,6 @@ end
 ############# END OF FUNCTION DEFINITIONS #############
 
 @download_directory = get_download_directory
-#down_links = ModdingOpenMW.scrape("https://modding-openmw.com/mods/")
-#write_yaml("download_links.yml", down_links)
+down_links = ModdingOpenMW.scrape("https://modding-openmw.com/mods/")
+write_yaml("download_links.yml", down_links)
 link_gateway(read_yaml("download_links.yml"))
